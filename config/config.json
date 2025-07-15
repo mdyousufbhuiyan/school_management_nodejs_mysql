@@ -1,0 +1,13 @@
+{
+  "JWT_KEY": "3QbZxtLU5EdM$e!9Uewu",
+  "BACKEND_PORT": 4000,
+  "BACKEND_PORT_1": 4001,
+  "MONGO_URI": "mongodb://localhost:27017",
+  "JWT_TOKEN_EXPIRATION_TIME": "1000h",
+  "db_name": "school_management",
+  "user_name": "my_db",
+  "password": "123456",
+  "db_port": 3306,
+  "host": "localhost",
+  "test": "test"
+}

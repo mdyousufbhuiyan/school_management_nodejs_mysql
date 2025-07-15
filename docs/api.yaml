@@ -1,0 +1,138 @@
+swagger: "2.0"
+info:
+  description: "This is the REST API definition for school management app by Group B - MSC IT Batch 15 ICBT"
+  version: "1.0.0"
+  title: "School Management"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "localhost:3000"
+basePath: "/api"
+tags:
+  - name: "admin"
+    description: "Operations about admin"
+schemes:
+  - "https"
+  - "http"
+
+paths:
+  /admin/:
+    get:
+      tags:
+        - "admin"
+      description: "Get a comma separated list of admin information jsons"
+      operationId: "getAllAdmins"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/AdminSchema"
+
+  /admin/{adminID}:
+    get:
+      tags:
+        - "admin"
+      description: "Get information about an admin using adminID as a json"
+      operationId: "getAdminByID"
+      produces:
+        - "application/json"
+      parameters:
+        - name: adminID
+          in: path
+          description: ID of admin to return
+          required: true
+          type: string
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/AdminSchema"
+
+  /admin/login:
+    post:
+      tags:
+        - "admin"
+      description: "Logs admin into the system"
+      operationId: "loginAdmin"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "adminID and password for login"
+          required: true
+          schema:
+            $ref: "#/definitions/AdminSchema"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: "string"
+        400:
+          description: "Invalid username/password supplied"
+
+  /admin/add:
+    post:
+      tags:
+        - "admin"
+      description: "add new admin into the system"
+      operationId: "addAdmin"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "admin description json"
+          required: true
+          schema:
+            $ref: "#/definitions/AdminLoginSchema"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: "string"
+
+definitions:
+  AdminSchema:
+    type: "object"
+    required:
+      - adminID
+      - password
+    properties:
+      _id:
+        type: "string"
+      adminID:
+        type: "string"
+      email:
+        type: "string"
+      password:
+        type: "string"
+      __v:
+        type: "integer"
+
+  AdminLoginSchema:
+    type: "object"
+    required:
+      - adminID
+      - password
+    properties:
+      adminID:
+        type: "string"
+      password:
+        type: "string"
+    xml:
+      name: "User"
+  ApiResponse:
+    type: "object"
+    properties:
+      code:
+        type: "integer"
+        format: "int32"
+      type:
+        type: "string"
+      message:
+        type: "string"

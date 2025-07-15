@@ -1,0 +1,388 @@
+const express = require("express");
+const configs = require("../config/config.json");
+const constants = require("../utils/constants");
+const statusCode = require("../utils/status_code");
+const db = require("../config/mysqldb");
+const staticMessage = require("../utils/message");
+const notificationController = require("../utils/notification_controller");
+const tName = constants.EXAM_ROUTINE_TABLE_NAME;
+const tObj = "erObj";
+exports.addExamRoutine = (req, res) => {
+  checkUniqueValue(req.body);
+  const sql = `SELECT * FROM ${tName} WHERE class_room_id = ? AND exam_type_id = ?`;
+  db.query(
+    sql,
+    [req.body.class_room_id, req.body.exam_type_id],
+    (err, rows, fields) => {
+      if (err instanceof Error) {
+        console.log(err);
+        return res.status(statusCode.STATUS_BAD_REQUEST).json({
+          message: staticMessage.FAILED(req.headers.language),
+          err,
+        });
+      }
+      if (rows.length > 0) {
+        console.log(rows);
+        return res.status(statusCode.STATUS_CONFLICT).json({
+          message: staticMessage.ALREADY_EXISTS(req.headers.language),
+        });
+      } else {
+        db.query(
+          `INSERT INTO ${tName} SET ?`,
+          req.body,
+          async (err, rows, fields) => {
+            if (err instanceof Error) {
+              console.log(err);
+              return res.status(404).json({
+                message: staticMessage.FAILED(req.headers.language),
+                error: err,
+              });
+            } else if (rows) {
+              await notificationController.sendNotificationToClassRoomIdsTopics(
+                [req.body.class_room_id],
+                staticMessage.EXAM_ROUTINE(req.headers.language),
+                staticMessage.NEW_EXAM_ROUTINE_UPLOADED(req.headers.language)
+              );
+              res.status(201).json({
+                message: staticMessage.SUCCESS(req.headers.language),
+                data: rows,
+              });
+            } else {
+              console.log(rows);
+              return res.status(404).json({
+                message: staticMessage.FAILED(req.headers.language),
+                data: rows,
+              });
+            }
+          }
+        );
+      }
+    }
+  );
+};
+
+exports.getAllExamRoutine = (req, res) => {
+  var conditions = "";
+  var queryList = [];
+  if (req.query.class_id != null) {
+    conditions += `cr.class_id = ?`;
+    queryList.push(req.query.class_id);
+  }
+  if (req.query.group_id != null) {
+    conditions += `${conditions.length > 0 ? "AND" : ""} cr.group_id = ?`;
+    queryList.push(req.query.group_id);
+  }
+
+  if (req.query.academic_year_id != null) {
+    conditions += `${
+      conditions.length > 0 ? "AND" : ""
+    } cr.academic_year_id = ?`;
+    queryList.push(req.query.academic_year_id);
+  }
+  if (queryList.length > 0) {
+    const sql = `SELECT 
+  ${this.selectedFields(tObj)},
+  ${getRelationalQuery(
+    req.headers.language
+  )} WHERE ${conditions} ORDER By a.name DESC`;
+
+    db.query(sql, queryList, (err, rows, fields) => {
+      if (err instanceof Error) {
+        console.log(err);
+        return res.status(statusCode.STATUS_BAD_REQUEST).json({
+          message: staticMessage.FAILED(req.headers.language),
+          error: err,
+        });
+      }
+      return res.status(statusCode.STATUS_OK).json({
+        message: staticMessage.SUCCESS(req.headers.language),
+        data: parseRelationalDataToJson(rows),
+      });
+    });
+  } else {
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data: [],
+    });
+  }
+};
+exports.getExamRoutineByClassRoomId = (req, res) => {
+  var conditions = "";
+  var queryList = [];
+  if (req.query.class_room_id != null) {
+    conditions += `${tObj}.class_room_id = ?`;
+    queryList.push(req.query.class_room_id);
+  }
+  if (
+    req.query.exam_type_id == null ||
+    req.query.exam_type_id == "null" ||
+    req.query.exam_type_id == ""
+  ) {
+  } else {
+    conditions += `${
+      conditions.length > 0 ? "AND" : ""
+    } ${tObj}.exam_type_id = ?`;
+    queryList.push(req.query.exam_type_id);
+  }
+  var sql = "";
+  sql = `SELECT 
+    ${this.selectedFields(tObj)},
+    ${getRelationalQuery(
+      req.headers.language
+    )} WHERE ${conditions} ORDER By ${tObj}.exam_start_date DESC`;
+
+  db.query(sql, queryList, (err, rows, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        error: err,
+      });
+    }
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data: parseRelationalDataToJson(rows),
+    });
+  });
+};
+exports.getExamRoutineById = (req, res) => {
+  const sql = `SELECT 
+  ${this.selectedFields(tName)},
+  ${getRelationalQuery(req.headers.language)} WHERE ${tName}.id = ?`;
+
+  db.query(sql, [req.params.id], (err, rows, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        error: err,
+      });
+    }
+    if (rows.length > 0) {
+      return res.status(statusCode.STATUS_OK).json({
+        message: staticMessage.SUCCESS(req.headers.language),
+        data: parseRelationalDataToJson(rows)[0],
+      });
+    } else {
+      return res.status(statusCode.STATUS_NOT_FOUND).json({
+        message: staticMessage.NOT_FOUND(req.headers.language),
+      });
+    }
+  });
+};
+
+exports.updateExamRoutine = (req, res) => {
+  checkUniqueValue(req.body);
+
+  // Construct the final UPDATE query string
+  const sql = `SELECT * FROM ${tName} WHERE id != ? AND class_room_id = ? AND exam_type_id = ?`;
+
+  db.query(
+    sql,
+    [req.params.id, req.body.class_room_id, req.body.exam_type_id],
+    (err, rows, fields) => {
+      if (err instanceof Error) {
+        console.log(err);
+        return res.status(401).json({
+          message: staticMessage.FAILED(req.headers.language),
+          err,
+        });
+      }
+
+      if (rows.length > 0) {
+        console.log(rows);
+        return res.status(401).json({
+          message: staticMessage.ALREADY_EXISTS(req.headers.language),
+        });
+      } else {
+        const id = req.params.id; // Get the user id from the URL
+        const updateData = req.body; // Get the fields to update from the request body
+
+        // Dynamically build the SQL SET clause and the values array for the query
+        let setClause = [];
+        let values = [];
+
+        // Loop through the keys of the object and build the SET part of the query
+        for (let key in updateData) {
+          if (
+            key === "updated_at" ||
+            key === "created_at" ||
+            key === "db_name"
+          ) {
+          } else {
+            setClause.push(`${key} = ?`); // For each key in the object, add `key = ?`
+            values.push(updateData[key]); // Push the value corresponding to the key
+          }
+        }
+        // console.log(`.............setClause.......${setClause}..values....${values}`);
+        // Add the user ID to the values array (for the WHERE clause)
+        values.push(id);
+
+        // Construct the final UPDATE query string
+        const query = `UPDATE ${tName} SET ${setClause.join(
+          ", "
+        )} WHERE id = ?`;
+        // Execute the query
+        db.query(query, values, async (err, result) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+
+          // Check if any row was updated
+          if (result.affectedRows === 0) {
+            return res
+              .status(404)
+              .json({ message: staticMessage.NOT_FOUND(req.headers.language) });
+          }
+          await notificationController.sendNotificationToClassRoomIdsTopics(
+            [req.body.class_room_id],
+            staticMessage.EXAM_ROUTINE(req.headers.language),
+            staticMessage.NEW_EXAM_ROUTINE_UPLOADED(req.headers.language)
+          );
+          // Return a success response
+          res.status(200).json({
+            message: staticMessage.UPDATED_SUCCESSFULLY(req.headers.language),
+            data: result.affectedRows,
+          });
+        });
+      }
+    }
+  );
+};
+
+//delete
+exports.deleteExamRoutine = (req, res) => {
+  const id = req.params.id; // Get the ID from the request parameters
+
+  // SQL query to delete the record from the database
+  const sql = `DELETE FROM ${tName} WHERE id = ?`;
+
+  // Execute the SQL query
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error("Error deleting User:", err);
+      return res
+        .status(statusCode.STATUS_BAD_REQUEST)
+        .json({
+          message: staticMessage.FAILED_TO_DELETE(req.headers.language),
+          error: err,
+        });
+    }
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(statusCode.STATUS_NOT_FOUND)
+        .json({ message: staticMessage.NOT_FOUND(req.headers.language) });
+    }
+
+    // If the record is deleted successfully
+    return res
+      .status(statusCode.STATUS_OK)
+      .json({
+        message: staticMessage.DELETED_SUCCESSFULLY(req.headers.language),
+      });
+  });
+};
+
+function checkUniqueValue(data) {
+  var subjectList = JSON.parse(data["subject_ids"]);
+  var roomNumberList = JSON.parse(data["room_numbers"]);
+  var examDates = JSON.parse(data["exam_dates"]);
+  var startTimes = JSON.parse(data["start_times"]);
+  var endTimes = JSON.parse(data["end_times"]);
+
+  const values = [
+    subjectList.length,
+    roomNumberList.length,
+    examDates.length,
+    startTimes.length,
+    endTimes.length,
+  ];
+
+  const areEqual = values.every((val) => val === values[0]);
+
+  console.log(areEqual);
+  if (!areEqual) {
+    return res.status(statusCode.STATUS_BAD_REQUEST).json({
+      message: "Request data is not well formated",
+    });
+  }
+}
+
+var parseRelationalDataToJson = (rows) => {
+  // Format the results as JSON objects
+  rows.forEach((element) => {
+    //  delete element.password;
+    //  delete element.department_id;
+    // element["academic_year_id"] = JSON.parse(element.academic_year_id);
+    // element["subject_ids"] = JSON.parse(element.subject_ids);
+    // element["teacher_ids"] = JSON.parse(element.teacher_ids);
+    // element["time_slot_ids"] = JSON.parse(element.time_slot_ids);
+    element["class_info"] =
+      element.class_info != null ? JSON.parse(element.class_info) : {};
+    element["group_info"] =
+      element.group_info != null ? JSON.parse(element.group_info) : {};
+    element["academic_year_info"] = element.academic_year_info
+      ? JSON.parse(element.academic_year_info)
+      : {};
+    element["exam_type_info"] =
+      element.exam_type_info != null ? JSON.parse(element.exam_type_info) : {};
+  });
+  return rows;
+};
+var getRelationalQuery = (language) => `
+JSON_OBJECT('id', c.id,'name',  ${
+  language == constants.LANGUAGE_BN ? "c.name_bn" : "c.name"
+}) AS class_info,
+JSON_OBJECT('id', g.id,'name', ${
+  language == constants.LANGUAGE_BN ? "g.name_bn" : "g.name"
+}) AS group_info,
+JSON_OBJECT('id', a.id,'name', ${
+  language == constants.LANGUAGE_BN ? "a.name_bn" : "a.name"
+}) AS academic_year_info,
+JSON_OBJECT('id', e.id,'name', ${
+  language == constants.LANGUAGE_BN ? "e.name_bn" : "e.name"
+}) AS exam_type_info
+FROM ${tName} as ${tObj}
+LEFT JOIN ${
+  constants.CLASS_ROOM_TABLE_NAME
+} as cr ON ${tObj}.class_room_id = cr.id
+LEFT JOIN ${constants.CLASS_NAME_TABLE} as c ON cr.class_id = c.id
+LEFT JOIN ${constants.GROUP_NAME_TABLE_NAME} as g ON cr.group_id = g.id
+LEFT JOIN ${
+  constants.ACADEMIC_YEAR_TABLE_NAME
+} as a ON cr.academic_year_id = a.id
+LEFT JOIN ${
+  constants.EXAM_TYPE_TABLE_NAME
+} as e ON ${tObj}.exam_type_id = e.id`;
+
+exports.allFields = [
+  "id",
+  "class_room_id",
+  "exam_type_id",
+  "exam_start_date",
+  "subject_ids",
+  "room_numbers",
+  "exam_dates",
+  "start_times",
+  "end_times",
+  "created_at",
+  "updated_at",
+];
+
+exports.selectedFields = (obj) => {
+  var excludedField = [
+    //  "password",
+    // "division_id",
+    // "district_id",
+    // "upozila_id",
+    // "created_at",
+    // "updated_at",
+  ];
+  var selectedField = [];
+  this.allFields.forEach((element) => {
+    if (!excludedField.includes(element))
+      selectedField.push(`${obj}.${element}`);
+  });
+  return selectedField;
+};
