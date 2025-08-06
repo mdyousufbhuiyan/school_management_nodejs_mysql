@@ -77,9 +77,10 @@ exports.getAllHoliday = (req, res) => {
   var sql;
 
   if (queryList.length > 0) {
+   // ${getRelationalQuery} WHERE ${conditions} OR ${tObj}.from_date IS NULL ORDER BY ${tObj}.from_date ASC`;
     sql = `SELECT 
   ${this.selectedFields(tObj)},
-  ${getRelationalQuery} WHERE ${conditions} OR ${tObj}.from_date IS NULL ORDER BY ${tObj}.from_date ASC`;
+  ${getRelationalQuery} WHERE ${conditions} ORDER BY ${tObj}.from_date ASC`;
     db.query(sql, queryList, (err, rows, fields) => {
       if (err instanceof Error) {
         console.log(err);
@@ -114,7 +115,45 @@ exports.getAllHoliday = (req, res) => {
     });
   }
 };
+exports.getLatestAcademicYear = (req, res, next) => {
+  console.log(
+    `.........req.query.academic_year_id.............${req.query.academic_year_id}`
+  );
+  if (req.query.academic_year_id != null && req.query.academic_year_id != "") {
+    next();
+  } else {
+    const sql = `SELECT 
+    a.id, ${
+      req.headers.language == constants.LANGUAGE_BN ? "a.name_bn" : "a.name"
+    } as name 
+   FROM ${tName} as ${tObj}
+   LEFT JOIN ${
+     constants.ACADEMIC_YEAR_TABLE_NAME
+   } as a ON ${tObj}.academic_year_id = a.id ORDER BY a.name DESC
+      LIMIT 1`;
 
+    db.query(sql, (err, rows, fields) => {
+      if (err instanceof Error) {
+        console.log(err);
+        return res.status(statusCode.STATUS_BAD_REQUEST).json({
+          message: staticMessage.FAILED(req.headers.language),
+          error: err,
+        });
+      }
+      console.log(rows);
+      if (rows.length > 0) {
+        console.log(rows);
+        req.query.academic_year_id = rows[0]["id"];
+        next();
+      } else {
+        return res.status(statusCode.STATUS_OK).json({
+          message: staticMessage.SUCCESS(req.headers.language),
+          data: [],
+        });
+      }
+    });
+  }
+};
 exports.getParticularMonthHoliday = (req, res) => {
   console.log(`........req.query.academic_year_id........${req.query.academic_year_id}...req.query.month..${req.query.month}`);
   var sql;

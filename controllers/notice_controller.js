@@ -107,7 +107,45 @@ exports.getAllNotice = async (req, res) => {
     });
   }
 };
+exports.getLatestAcademicYear = (req, res, next) => {
+  console.log(
+    `.........req.query.academic_year_id.............${req.query.academic_year_id}`
+  );
+  if (req.query.academic_year_id != null && req.query.academic_year_id != "") {
+    next();
+  } else {
+    const sql = `SELECT 
+    a.id, ${
+      req.headers.language == constants.LANGUAGE_BN ? "a.name_bn" : "a.name"
+    } as name 
+   FROM ${tName} as ${tObj}
+   LEFT JOIN ${
+     constants.ACADEMIC_YEAR_TABLE_NAME
+   } as a ON ${tObj}.academic_year_id = a.id ORDER BY a.name DESC
+      LIMIT 1`;
 
+    db.query(sql, (err, rows, fields) => {
+      if (err instanceof Error) {
+        console.log(err);
+        return res.status(statusCode.STATUS_BAD_REQUEST).json({
+          message: staticMessage.FAILED(req.headers.language),
+          error: err,
+        });
+      }
+      console.log(rows);
+      if (rows.length > 0) {
+        console.log(rows);
+        req.query.academic_year_id = rows[0]["id"];
+        next();
+      } else {
+        return res.status(statusCode.STATUS_OK).json({
+          message: staticMessage.SUCCESS(req.headers.language),
+          data: [],
+        });
+      }
+    });
+  }
+};
 exports.getNoticesForDashBoard = (req, res) => {
   var sql;
 
@@ -220,12 +258,10 @@ exports.deleteNotice = (req, res) => {
   db.query(sql, [id], (err, result) => {
     if (err) {
       console.error("Error deleting User:", err);
-      return res
-        .status(statusCode.STATUS_BAD_REQUEST)
-        .json({
-          message: staticMessage.FAILED_TO_DELETE(req.headers.language),
-          error: err,
-        });
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED_TO_DELETE(req.headers.language),
+        error: err,
+      });
     }
 
     if (result.affectedRows === 0) {
@@ -235,11 +271,9 @@ exports.deleteNotice = (req, res) => {
     }
 
     // If the record is deleted successfully
-    return res
-      .status(statusCode.STATUS_OK)
-      .json({
-        message: staticMessage.DELETED_SUCCESSFULLY(req.headers.language),
-      });
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.DELETED_SUCCESSFULLY(req.headers.language),
+    });
   });
 };
 

@@ -123,6 +123,7 @@ exports.getAllTeachers = (req, res) => {
     });
   });
 };
+
 exports.countTeachersByGender = (req, res) => {
   const sql = `SELECT gender, COUNT(*) AS total FROM ${tName} GROUP BY gender`;
 

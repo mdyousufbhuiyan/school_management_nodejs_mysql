@@ -88,6 +88,13 @@ router.get("/subject-only-dropdown", utils.extractToken, subjectsController.getA
 router.get("/subject/:id",utils.extractToken, subjectsController.getSubjectById);
 router.put("/subject/:id", utils.extractToken, subjectsController.updateSubjects);
 router.delete("/subject/:id",utils.extractToken, subjectsController.deleteSubjects);
+router.get(
+  "/class-wise-subject",
+  utils.extractToken,
+  classRoutineController.getAllSubjectsAccordingToClassroom
+);
+
+
 
 // class
 router.post("/class", utils.extractToken, classController.addClasses);
@@ -138,7 +145,11 @@ router.delete("/teacher/:id", utils.extractToken, teacherController.deleteTeache
 //router.get("/teacher_with_class_room_details",  utils.extractToken,teacherController.getTeacherWithClassInfo);
 //router.get("/teacher_with_class_room_details/:id",  utils.extractToken,teacherController.getTeacherByTeacherIdWithClassInfo);
 router.get("/count-teacher-by-gender",utils.extractToken,teacherController.countTeachersByGender);
-
+router.get(
+  "/class-wise-teacher",
+  utils.extractToken,
+  classRoutineController.getAllTeachersAccordingToClassroom
+);
 
 // student 
 router.post("/student",  utils.extractToken,classStudentController.isValidClassRoomToChange, studentController.addStudent,classStudentController.addClassStudent);
@@ -160,7 +171,7 @@ router.get("/count-students-by-gender",utils.extractToken,studentController.coun
 
 // class rooms
 router.post("/class-room",utils.extractToken, classRoomController.addClassRoom);
-router.get("/class-room/",utils.extractToken, classRoomController.getAllClassRooms);
+router.get("/class-room/",utils.extractToken,classRoomController.getLatestAcademicYear, classRoomController.getAllClassRooms);
 router.get("/class-room-only-dropdown", utils.extractToken, classRoomController.getAllClassRoomsForDropDown);
 router.delete("/class-room/:id", utils.extractToken,classRoomController.deleteClassRooms);
 router.put("/class-room/:id", utils.extractToken,classRoomController.updateClassRooms);
@@ -170,7 +181,7 @@ router.put("/class-room/:id", utils.extractToken,classRoomController.updateClass
 router.post("/class-routine", utils.extractToken, classRoutineController.addClassRoutine);
 // class time table 
 //router.post("/class-time-table",utils.extractToken, classTimeTableController.addClassTime);
-router.get("/class-routine", utils.extractToken,classRoutineController.getAllClassRoutine);
+router.get("/class-routine", utils.extractToken,classRoutineController.getLatestAcademicYear,classRoutineController.getAllClassRoutine);
 
 
 // router.get("/class-wise-subject-list",  utils.extractToken,classTimeTableController.getClassWiseSubjectList);
@@ -208,7 +219,7 @@ router.delete("/exam-type/:id",utils.extractToken,examTypeController.deleteExamT
 
 // exam routine 
 router.post("/exam-routine", utils.extractToken, examRoutineController.addExamRoutine);
-router.get("/exam-routine",  utils.extractToken,examRoutineController.getAllExamRoutine);
+router.get("/exam-routine",  utils.extractToken,examRoutineController.getLatestAcademicYear,examRoutineController.getAllExamRoutine);
 router.get("/exam-routine/:id",  utils.extractToken,examRoutineController.getExamRoutineById);
 // router.get("/single-student-exam-mark",  utils.extractToken,examRoutineController.getSingleStudentExamMark);
  //router.get("/exam-routine-general-search",  utils.extractToken, examRoutineController.generalSearchForExamRoutine);
@@ -266,7 +277,7 @@ router.delete("/notice/:id", utils.extractToken, noticeController.deleteNotice);
 router.get("/notice-dashboard",utils.extractToken,noticeController.getNoticesForDashBoard);
 // holiday
 router.post("/holiday", utils.extractToken, holidayController.addHoliday);
- router.get("/holiday",utils.extractToken,holidayController.getAllHoliday);
+ router.get("/holiday",utils.extractToken, holidayController.getLatestAcademicYear,holidayController.getAllHoliday);
  router.get("/holiday/:id", utils.extractToken,holidayController.getHolidayById);
 router.put("/holiday/:id",utils.extractToken, holidayController.updateHoliday);
 router.delete("/holiday/:id", utils.extractToken, holidayController.deleteHoliday);

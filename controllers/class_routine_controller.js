@@ -11,55 +11,51 @@ const tObj = "cRoutine";
 exports.addClassRoutine = (req, res) => {
   checkUniqueValue(req.body);
   const sql = `SELECT * FROM ${tName} WHERE class_room_id = ?`;
-  db.query(
-    sql,
-    [req.body.class_room_id],
-    (err, rows, fields) => {
-      if (err instanceof Error) {
-        console.log(err);
-        return res.status(statusCode.STATUS_BAD_REQUEST).json({
-          message: staticMessage.FAILED(req.headers.language),
-          err,
-        });
-      }
-      if (rows.length > 0) {
-        console.log(rows);
-        return res.status(statusCode.STATUS_CONFLICT).json({
-          message: staticMessage.ALREADY_EXISTS(req.headers.language),
-        });
-      } else {
-        db.query(
-          `INSERT INTO ${tName} SET ?`,
-          req.body,
-          async(err, rows, fields) => {
-            if (err instanceof Error) {
-              console.log(err);
-              return res.status(statusCode.STATUS_BAD_REQUEST).json({
-                message: staticMessage.FAILED(req.headers.language),
-                error: err,
-              });
-            } else if (rows) {
-                   await notificationController.sendNotificationToClassRoomIdsTopics(
-                          [req.body.class_room_id],
-                          staticMessage.CLASS_ROUTINE(req.headers.language),
-                          staticMessage.NEW_CLASS_ROUTINE_UPLOADED(req.headers.language)
-                        );
-              res.status(statusCode.STATUS_CREATED).json({
-                message: staticMessage.SUCCESS(req.headers.language),
-                data: rows,
-              });
-            } else {
-              console.log(rows);
-              return res.status(statusCode.STATUS_BAD_REQUEST).json({
-                message: staticMessage.FAILED(req.headers.language),
-                data: rows,
-              });
-            }
-          }
-        );
-      }
+  db.query(sql, [req.body.class_room_id], (err, rows, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        err,
+      });
     }
-  );
+    if (rows.length > 0) {
+      console.log(rows);
+      return res.status(statusCode.STATUS_CONFLICT).json({
+        message: staticMessage.ALREADY_EXISTS(req.headers.language),
+      });
+    } else {
+      db.query(
+        `INSERT INTO ${tName} SET ?`,
+        req.body,
+        async (err, rows, fields) => {
+          if (err instanceof Error) {
+            console.log(err);
+            return res.status(statusCode.STATUS_BAD_REQUEST).json({
+              message: staticMessage.FAILED(req.headers.language),
+              error: err,
+            });
+          } else if (rows) {
+            await notificationController.sendNotificationToClassRoomIdsTopics(
+              [req.body.class_room_id],
+              staticMessage.CLASS_ROUTINE(req.headers.language),
+              staticMessage.NEW_CLASS_ROUTINE_UPLOADED(req.headers.language)
+            );
+            res.status(statusCode.STATUS_CREATED).json({
+              message: staticMessage.SUCCESS(req.headers.language),
+              data: rows,
+            });
+          } else {
+            console.log(rows);
+            return res.status(statusCode.STATUS_BAD_REQUEST).json({
+              message: staticMessage.FAILED(req.headers.language),
+              data: rows,
+            });
+          }
+        }
+      );
+    }
+  });
 };
 
 exports.getAllClassRoutine = (req, res) => {
@@ -80,12 +76,14 @@ exports.getAllClassRoutine = (req, res) => {
     } cr.academic_year_id = ?`;
     queryList.push(req.query.academic_year_id);
   }
-   if(queryList.length>0){
+  if (queryList.length > 0) {
     const sql = `SELECT 
     ${this.selectedFields(tObj)},
-    ${getRelationalQuery(req.headers.language)} WHERE ${conditions} ORDER By a.name DESC`;
-  
-    db.query(sql,queryList, (err, rows, fields) => {
+    ${getRelationalQuery(
+      req.headers.language
+    )} WHERE ${conditions} ORDER By a.name DESC`;
+
+    db.query(sql, queryList, (err, rows, fields) => {
       if (err instanceof Error) {
         console.log(err);
         return res.status(statusCode.STATUS_BAD_REQUEST).json({
@@ -98,19 +96,54 @@ exports.getAllClassRoutine = (req, res) => {
         data: parseRelationalDataToJson(rows),
       });
     });
-   }else{
+  } else {
     return res.status(statusCode.STATUS_OK).json({
       message: staticMessage.SUCCESS(req.headers.language),
       data: [],
     });
-   }
+  }
 };
+
 exports.getAllClassRoutineByClassRoomId = (req, res) => {
   const sql = `SELECT 
     ${this.selectedFields(tObj)},
-    ${getRelationalQuery(req.headers.language)} WHERE class_room_id = ? ORDER By a.name DESC`;
-  
-    db.query(sql,[req.query.class_room_id], (err, rows, fields) => {
+    ${getRelationalQuery(
+      req.headers.language
+    )} WHERE class_room_id = ? ORDER By a.name DESC`;
+
+  db.query(sql, [req.query.class_room_id], (err, rows, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        error: err,
+      });
+    }
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data: rows.length > 0 ? parseRelationalDataToJson(rows)[0] : [],
+    });
+  });
+};
+exports.getLatestAcademicYear = (req, res, next) => {
+  console.log(`.........req.query.academic_year_id.............${req.query.academic_year_id}`);
+  if (req.query.academic_year_id != null && req.query.academic_year_id != '') {
+    next();
+  } else {
+    const sql = `SELECT 
+    a.id, ${
+      req.headers.language == constants.LANGUAGE_BN ? "a.name_bn" : "a.name"
+    } as name 
+   FROM ${tName} as ${tObj}
+LEFT JOIN ${
+      constants.CLASS_ROOM_TABLE_NAME
+    } as cr ON ${tObj}.class_room_id = cr.id
+LEFT JOIN ${
+      constants.ACADEMIC_YEAR_TABLE_NAME
+    } as a ON cr.academic_year_id = a.id ORDER BY a.name DESC
+      LIMIT 1`;
+
+    db.query(sql, (err, rows, fields) => {
       if (err instanceof Error) {
         console.log(err);
         return res.status(statusCode.STATUS_BAD_REQUEST).json({
@@ -118,11 +151,74 @@ exports.getAllClassRoutineByClassRoomId = (req, res) => {
           error: err,
         });
       }
-      return res.status(statusCode.STATUS_OK).json({
-        message: staticMessage.SUCCESS(req.headers.language),
-        data: rows.length>0? parseRelationalDataToJson(rows)[0]:[],
-      });
+     
+
+      if (rows.length > 0) {
+         console.log(rows);
+        req.query.academic_year_id = rows[0]["id"];
+        next();
+      } else {
+        return res.status(statusCode.STATUS_OK).json({
+          message: staticMessage.SUCCESS(req.headers.language),
+          data: [],
+        });
+      }
+
     });
+  }
+};
+exports.getMyClassRoutineByAcademicYearId = (req, res) => {
+  var conditions = "";
+  var queryList = [];
+  // if (req.query.class_room_id != null) {
+  //   conditions += `${tObj}.class_room_id = ?`;
+  //   queryList.push(req.query.class_room_id);
+  // }
+  // if (req.query.class_id != null) {
+  //   conditions += `${tObj}.class_id = ?`;
+  //   queryList.push(req.query.class_id);
+  // }
+  // if (req.query.group_id != null) {
+  //   conditions += `${conditions.length > 0 ? "AND" : ""} ${tObj}.group_id = ?`;
+  //   queryList.push(req.query.group_id);
+  // }
+
+  if (req.query.academic_year_id != null) {
+    conditions += `${
+      conditions.length > 0 ? "AND" : ""
+    } ${tObj}.academic_year_id = ?`;
+    queryList.push(req.query.academic_year_id);
+  }
+  console.log(`........conditions.......${conditions}`);
+  if (conditions.length > 0) {
+
+  const sql = `SELECT 
+    ${this.selectedFields(tObj)},
+    ${getRelationalQuery(
+      req.headers.language
+    )} WHERE a.id = ?`;
+
+  db.query(sql, [req.query.academic_year_id], (err, rows, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        error: err,
+      });
+    }
+     console.log(rows);
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data:  parseRelationalDataToJson(rows),
+    });
+  });
+  } else {
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data: rows.length > 0 ? parseRelationalDataToJson(rows)[0] : [],
+    });
+  }
+
 };
 exports.getAllClassRoutineById = (req, res) => {
   const sql = `SELECT 
@@ -149,7 +245,180 @@ exports.getAllClassRoutineById = (req, res) => {
     }
   });
 };
+exports.getAllSubjectsAccordingToClassroom = (req, res) => {
+  var language = req.headers.language;
+  if (req.query.class_room_id != null) {
+    try {
+      var sql = `SELECT subject_ids,teacher_ids FROM ${tName} as ${tObj} WHERE ${tObj}.class_room_id = ? LIMIT 1`;
+      // console.log('.........SQL CHECK,..........');
+      db.query(sql, [req.query.class_room_id], (err, rows, fields) => {
+        if (err instanceof Error) {
+          console.log(err);
+          return res.status(statusCode.STATUS_BAD_REQUEST).json({
+            message: staticMessage.FAILED(req.headers.language),
+            error: err,
+          });
+        }
+        const subjectIds = JSON.parse(
+          rows.length > 0
+            ? rows[0].subject_ids != null
+              ? rows[0].subject_ids
+              : "[]"
+            : "[]"
+        ); // e.g. [2, 4, 5]
+        const teacherIds = JSON.parse(
+          rows.length > 0
+            ? rows[0].teacher_ids != null
+              ? rows[0].teacher_ids
+              : "[]"
+            : "[]"
+        );
+        // console.log(subjectIds);
+        if (Array.isArray(subjectIds) && subjectIds.length > 0) {
+          var condition = [];
+          if (String(req.query.is_all_require) === "true") {
+            sql = `SELECT id,${
+              language == constants.LANGUAGE_BN ? "name_bn" : "name"
+            } as name,subject_code FROM ${
+              constants.SUBJECT_NAME_TABLE
+            }  WHERE id IN (?) OR name = ? ORDER BY subject_code`;
+            condition = ["all"];
+          } else {
+            sql = `SELECT id,${
+              language == constants.LANGUAGE_BN ? "name_bn" : "name"
+            } as name,subject_code FROM ${
+              constants.SUBJECT_NAME_TABLE
+            }  WHERE id IN (?) ORDER BY subject_code`;
+            condition = [];
+          }
+          db.query(sql, [subjectIds, condition], (err, subjectRows, fields) => {
+            if (err instanceof Error) {
+              console.log(err);
+              return res.status(statusCode.STATUS_BAD_REQUEST).json({
+                message: staticMessage.FAILED(req.headers.language),
+                error: err,
+              });
+            }
+            console.log(subjectRows);
+            for (let i = 0; i < subjectRows.length; i++) {
+              // subjectRows[i]["teacher_id"] = teacherIds[i];
+              for (
+                let subCounter = 0;
+                subCounter < subjectIds.length;
+                subCounter++
+              ) {
+                if (subjectRows[i]["id"] == subjectIds[subCounter])
+                  subjectRows[i]["teacher_id"] = teacherIds[subCounter];
 
+                //console.log("Counter is:", i);
+              }
+              //console.log("Counter is:", i);
+            }
+            // user.skills = skillRows;
+            res.status(statusCode.STATUS_OK).json({
+              message: staticMessage.SUCCESS(req.headers.language),
+              data: subjectRows,
+            });
+          });
+        } else {
+          return res.status(statusCode.STATUS_OK).json({
+            message: staticMessage.SUCCESS(req.headers.language),
+            data: [],
+          });
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  } else {
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data: [],
+    });
+  }
+};
+
+exports.getAllTeachersAccordingToClassroom = (req, res) => {
+  var language = req.headers.language;
+  if (req.query.class_room_id != null) {
+    try {
+      sql = `SELECT subject_ids,teacher_ids FROM ${tName} as ${tObj} WHERE ${tObj}.class_room_id = ? LIMIT 1`;
+
+      db.query(sql, [req.query.class_room_id], (err, rows, fields) => {
+        if (err instanceof Error) {
+          console.log(err);
+          return res.status(statusCode.STATUS_BAD_REQUEST).json({
+            message: staticMessage.FAILED(req.headers.language),
+            error: err,
+          });
+        }
+        var subjectIds = JSON.parse(
+          rows.length > 0
+            ? rows[0].subject_ids != null
+              ? rows[0].subject_ids
+              : "[]"
+            : "[]"
+        ); // e.g. [2, 4, 5]
+        var teacherIds = JSON.parse(
+          rows.length > 0
+            ? rows[0].teacher_ids != null
+              ? rows[0].teacher_ids
+              : "[]"
+            : "[]"
+        );
+        teacherIds = [...new Set(teacherIds)];
+        console.log(teacherIds);
+        if (Array.isArray(teacherIds) && teacherIds.length > 0) {
+          db.query(
+            `SELECT id, ${
+              req.headers.language == constants.LANGUAGE_BN
+                ? "first_name_bn"
+                : "first_name"
+            } as first_name, ${
+              req.headers.language == constants.LANGUAGE_BN
+                ? "middle_name_bn"
+                : "middle_name"
+            } as middle_name,${
+              req.headers.language == constants.LANGUAGE_BN
+                ? "last_name_bn"
+                : "last_name"
+            } as last_name FROM ${constants.TEACHER_TABLE}  WHERE id IN (?)`,
+            [teacherIds],
+            (err, teacherRows, fields) => {
+              if (err instanceof Error) {
+                console.log(err);
+                return res.status(statusCode.STATUS_BAD_REQUEST).json({
+                  message: staticMessage.FAILED(req.headers.language),
+                  error: err,
+                });
+              }
+              console.log(teacherRows);
+              // user.skills = skillRows;
+              res.status(statusCode.STATUS_OK).json({
+                message: staticMessage.SUCCESS(req.headers.language),
+                data: teacherRows,
+              });
+            }
+          );
+        } else {
+          return res.status(statusCode.STATUS_OK).json({
+            message: staticMessage.SUCCESS(req.headers.language),
+            data: [],
+          });
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  } else {
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.SUCCESS(req.headers.language),
+      data: [],
+    });
+  }
+};
 exports.updateClassRoutine = (req, res) => {
   var subjectList = JSON.parse(req.body["subject_ids"]);
   var teacherList = JSON.parse(req.body["teacher_ids"]);
@@ -176,7 +445,7 @@ exports.updateClassRoutine = (req, res) => {
 
   db.query(
     sql,
-    [req.params.id,req.body.class_room_id],
+    [req.params.id, req.body.class_room_id],
     (err, rows, fields) => {
       if (err instanceof Error) {
         console.log(err);
@@ -201,7 +470,11 @@ exports.updateClassRoutine = (req, res) => {
 
         // Loop through the keys of the object and build the SET part of the query
         for (let key in updateData) {
-          if (key === "updated_at" || key === "created_at" || key === "db_name") {
+          if (
+            key === "updated_at" ||
+            key === "created_at" ||
+            key === "db_name"
+          ) {
           } else {
             setClause.push(`${key} = ?`); // For each key in the object, add `key = ?`
             values.push(updateData[key]); // Push the value corresponding to the key
@@ -216,29 +489,30 @@ exports.updateClassRoutine = (req, res) => {
           ", "
         )} WHERE id = ?`;
         // Execute the query
-        db.query(
-          query, values,
-           async (err, result) => {
-            if (err) {
-              return res.status(statusCode.STATUS_BAD_REQUEST).json({ error: err.message });
-            }
-
-            // Check if any row was updated
-            if (result.affectedRows === 0) {
-              return res.status(statusCode.STATUS_BAD_REQUEST).json({ message: staticMessage.NOT_FOUND(req.headers.language) });
-            }
-            await notificationController.sendNotificationToClassRoomIdsTopics(
-              [req.body.class_room_id],
-              staticMessage.CLASS_ROUTINE(req.headers.language),
-              staticMessage.NEW_CLASS_ROUTINE_UPLOADED(req.headers.language)
-            );
-            // Return a success response
-            res.status(statusCode.STATUS_OK).json({
-              message: staticMessage.SUCCESS(req.headers.language),
-              data: result.affectedRows,
-            });
+        db.query(query, values, async (err, result) => {
+          if (err) {
+            return res
+              .status(statusCode.STATUS_BAD_REQUEST)
+              .json({ error: err.message });
           }
-        );
+
+          // Check if any row was updated
+          if (result.affectedRows === 0) {
+            return res
+              .status(statusCode.STATUS_BAD_REQUEST)
+              .json({ message: staticMessage.NOT_FOUND(req.headers.language) });
+          }
+          await notificationController.sendNotificationToClassRoomIdsTopics(
+            [req.body.class_room_id],
+            staticMessage.CLASS_ROUTINE(req.headers.language),
+            staticMessage.NEW_CLASS_ROUTINE_UPLOADED(req.headers.language)
+          );
+          // Return a success response
+          res.status(statusCode.STATUS_OK).json({
+            message: staticMessage.SUCCESS(req.headers.language),
+            data: result.affectedRows,
+          });
+        });
       }
     }
   );
@@ -255,25 +529,26 @@ exports.deleteClassRoutine = (req, res) => {
   db.query(sql, [id], (err, result) => {
     if (err) {
       console.error("Error deleting User:", err);
-      return res
-        .status(statusCode.STATUS_BAD_REQUEST)
-        .json({ message: staticMessage.FAILED_TO_DELETE(req.headers.language), error: err });
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED_TO_DELETE(req.headers.language),
+        error: err,
+      });
     }
 
     if (result.affectedRows === 0) {
-      return res
-        .status(statusCode.STATUS_NOT_FOUND)
-        .json({ message: staticMessage.STATUS_NOT_FOUND(req.headers.language) });
+      return res.status(statusCode.STATUS_NOT_FOUND).json({
+        message: staticMessage.STATUS_NOT_FOUND(req.headers.language),
+      });
     }
 
     // If the record is deleted successfully
-    return res
-      .status(statusCode.STATUS_OK)
-      .json({ message: staticMessage.DELETED_SUCCESSFULLY(req.headers.language) });
+    return res.status(statusCode.STATUS_OK).json({
+      message: staticMessage.DELETED_SUCCESSFULLY(req.headers.language),
+    });
   });
 };
 
-function checkUniqueValue(data){
+function checkUniqueValue(data) {
   var subjectList = JSON.parse(data["subject_ids"]);
   var teacherList = JSON.parse(data["teacher_ids"]);
   var roomNumberList = JSON.parse(data["room_numbers"]);
@@ -290,7 +565,7 @@ function checkUniqueValue(data){
   console.log(
     `..........roomNumberList.....${roomNumberList}..roomNumberList..length...${roomNumberList.length}`
   );
-  
+
   const values = [
     subjectList.length,
     teacherList.length,
@@ -308,7 +583,6 @@ function checkUniqueValue(data){
   }
 }
 
-
 var parseRelationalDataToJson = (rows) => {
   // Format the results as JSON objects
   rows.forEach((element) => {
@@ -319,22 +593,33 @@ var parseRelationalDataToJson = (rows) => {
     // element["teacher_ids"] = JSON.parse(element.teacher_ids);
     // element["time_slot_ids"] = JSON.parse(element.time_slot_ids);
     element["class_info"] = JSON.parse(element.class_info);
-    element["group_info"] =element.group_info!=null? JSON.parse(element.group_info):{};
+    element["group_info"] =
+      element.group_info != null ? JSON.parse(element.group_info) : {};
     element["academic_year_info"] = JSON.parse(element.academic_year_info);
   });
   return rows;
 };
-var getRelationalQuery =(language)=>{ 
+var getRelationalQuery = (language) => {
   return `
-JSON_OBJECT('id', c.id,'name',  ${language==constants.LANGUAGE_BN?'c.name_bn':'c.name'}) AS class_info,
-JSON_OBJECT('id', g.id,'name', ${language==constants.LANGUAGE_BN?'g.name_bn':'g.name'}) AS group_info,
-JSON_OBJECT('id', a.id,'name', ${language==constants.LANGUAGE_BN?'a.name_bn':'a.name'}) AS academic_year_info
+JSON_OBJECT('id', c.id,'name',  ${
+    language == constants.LANGUAGE_BN ? "c.name_bn" : "c.name"
+  }) AS class_info,
+JSON_OBJECT('id', g.id,'name', ${
+    language == constants.LANGUAGE_BN ? "g.name_bn" : "g.name"
+  }) AS group_info,
+JSON_OBJECT('id', a.id,'name', ${
+    language == constants.LANGUAGE_BN ? "a.name_bn" : "a.name"
+  }) AS academic_year_info
 FROM ${tName} as ${tObj}
-LEFT JOIN ${constants.CLASS_ROOM_TABLE_NAME} as cr ON ${tObj}.class_room_id = cr.id
+LEFT JOIN ${
+    constants.CLASS_ROOM_TABLE_NAME
+  } as cr ON ${tObj}.class_room_id = cr.id
 LEFT JOIN ${constants.CLASS_NAME_TABLE} as c ON cr.class_id = c.id
 LEFT JOIN ${constants.GROUP_NAME_TABLE_NAME} as g ON cr.group_id = g.id
-LEFT JOIN ${constants.ACADEMIC_YEAR_TABLE_NAME} as a ON cr.academic_year_id = a.id`;
-}
+LEFT JOIN ${
+    constants.ACADEMIC_YEAR_TABLE_NAME
+  } as a ON cr.academic_year_id = a.id`;
+};
 exports.allFields = [
   "id",
   "class_room_id",
