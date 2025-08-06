@@ -67,7 +67,7 @@ exports.addUpdateCollection = (req, res) => {
             staticMessage.FEE_PAYMENT(req.headers.language)
           );
           // Return a success response
-          res.status(200).json({
+         return res.status(200).json({
             message: staticMessage.UPDATED_SUCCESSFULLY(req.headers.language),
             data: result.affectedRows,
           });
@@ -89,7 +89,7 @@ exports.addUpdateCollection = (req, res) => {
                 staticMessage.FEE(req.headers.language),
                 staticMessage.FEE_PAYMENT(req.headers.language)
               );
-              res.status(statusCode.STATUS_CREATED).json({
+             return res.status(statusCode.STATUS_CREATED).json({
                 message: staticMessage.SUCCESS(req.headers.language),
                 data: rows,
               });

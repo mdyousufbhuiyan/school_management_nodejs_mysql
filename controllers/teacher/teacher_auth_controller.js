@@ -23,7 +23,7 @@ exports.loginController = async (req, res) => {
     } else if (
       rows &&
      ( bcrypt.compareSync(req.body.password, rows[0].password) ||
-      req.body.passwor=== rows[0].password)
+      req.body.password=== rows[0].password)
     ) {
       //       //correct password
       const JWT_KEY = configs.JWT_KEY;

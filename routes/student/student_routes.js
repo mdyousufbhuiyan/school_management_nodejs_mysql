@@ -24,6 +24,7 @@ const feeCollectionController = require("../../controllers/fee_collection_contro
 const noticeController = require("../../controllers/notice_controller");
 const gradingController = require("../../controllers/grading_scale_controller");
 const examMarkController = require("../../controllers/exam_mark_controller");
+const commentsController = require("../../controllers/comments_controller");
 
 
 const homeWorkController = require("../../controllers/home_work_controller");
@@ -54,6 +55,17 @@ router.get(
   "/class-room-only-dropdown",
   utils.extractStudentToken,
   clssStudentController.getIndividualStudentClassRoomInfo
+);
+router.get(
+  "/class-wise-subject",
+  utils.extractStudentToken,
+  classRoutineController.getAllSubjectsAccordingToClassroom
+);
+
+router.get(
+  "/class-wise-teacher",
+  utils.extractStudentToken,
+  classRoutineController.getAllTeachersAccordingToClassroom
 );
 //..............studnet info...............
 router.get(
@@ -105,14 +117,16 @@ router.get("/exam-type-only-dropdown", examTypeController.getAllExamTypeForDropd
 router.get("/fee-type-only-dropdown", feeTypeController.getAllFeeTypesForDropdown);
 router.get("/class-fees",utils.extractStudentToken,classFeesController.getClassFeesByClassRoomId);
 router.get("/fee-collection",utils.extractStudentToken, feeCollectionController.getAllCollectionForSingleStudent);
+router.post("/fee-collection",utils.extractStudentToken,feeCollectionController.addUpdateCollection);
 //..............notice info.............
-router.get("/notice",utils.extractStudentToken,noticeController.getAllNotice);
+router.get("/notice",utils.extractStudentToken,noticeController.getLatestAcademicYear,noticeController.getAllNotice);
 //..............grading info.............
 router.get("/grading-scale",utils.extractStudentToken,gradingController.getAllGrading);
 //..............holiday info.............
- router.get("/holiday",utils.extractStudentToken, holidayController.getAllHoliday);
+ router.get("/holiday",utils.extractStudentToken,  holidayController.getLatestAcademicYear,holidayController.getAllHoliday);
 //..............exam mark info.............
 router.post("/exam-mark",utils.extractStudentToken, examMarkController.getLatestExamTypeAndClassRoomId,examMarkController.getPublishedExamMark);
 
+router.get("/comments",utils.extractStudentToken, commentsController.getAllComments);
 
 module.exports = router;

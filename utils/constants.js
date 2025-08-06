@@ -33,6 +33,7 @@ module.exports = {
   NOTICE_COLLECTION_NAME: "notice",
   APP_LANGUAGE_COLLECTION_NAME: "app_language",
   HOLIDDAY_COLLECTION_NAME: "holiday",
+  COMMENTS_COLLECTION_NAME: "comments",
   
 
   LANGUAGE_BN:'BN',

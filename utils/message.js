@@ -16,6 +16,14 @@ module.exports.CLASS_ROUTINE = (language) => {
 module.exports.NEW_CLASS_ROUTINE_UPLOADED = (language) => {
   return constants.LANGUAGE_BN == language ? "নতুন ক্লাস রুটিন প্রকাশ করা হয়েছে" : "New Class Routine Uploaded";
 };
+
+module.exports.COMMENT = (language) => {
+  return constants.LANGUAGE_BN == language ? "মন্তব্য" : "Comment";
+};
+
+module.exports.NEW_COMMENT_ADDED = (language) => {
+  return constants.LANGUAGE_BN == language ? "নতুন মন্তব্য যোগ করা হয়েছে" : "New comment added";
+};
 module.exports.FEE = (language) => {
   return constants.LANGUAGE_BN == language ? "ফি" : "Fee";
 };

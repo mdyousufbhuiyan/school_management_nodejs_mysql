@@ -5,7 +5,7 @@ const constants = require("../utils/constants");
 const db = require("../config/mysqldb");
 const statusCode = require("../utils/status_code");
 const staticMessage = require("../utils/message");
-const notificationController = require('../utils/notification_controller');
+const notificationController = require("../utils/notification_controller");
 var tName = constants.EXAM_MARKS_TABLE_NAME;
 var tObj = "em";
 var ayObj = "academicYear";
@@ -32,7 +32,7 @@ exports.addExamMark = (req, res) => {
         db.query(
           `INSERT INTO ${tName} SET ?`,
           req.body,
-         async (err, rows, fields) => {
+          async (err, rows, fields) => {
             if (err instanceof Error) {
               console.log(err);
               return res.status(statusCode.STATUS_BAD_REQUEST).json({
@@ -156,12 +156,12 @@ exports.getPublishedExamMark = (req, res) => {
   console.log(`.......my.conditions........${conditions}.....${queryList}`);
   var sql;
 
-    sql = `SELECT 
+  sql = `SELECT 
   ${this.selectedFields(tObj)},
   ${getRelationalQuery(
     req.headers.language
   )} WHERE ${conditions} ORDER BY ${ayObj}.name DESC`;
- 
+
   db.query(sql, queryList, (err, rows, fields) => {
     if (err instanceof Error) {
       console.log(err);
@@ -175,6 +175,73 @@ exports.getPublishedExamMark = (req, res) => {
       message: staticMessage.SUCCESS(req.headers.language),
       data: parseRelationalDataToJson(rows),
     });
+  });
+};
+exports.getExamMarkWithStudentDetails = (req, res) => {
+  var conditions = "";
+  var queryList = [];
+  if (req.query.class_room_id != null) {
+    conditions += `${
+      conditions.length > 0 ? " AND" : ""
+    } ${tObj}.class_room_id = ?`;
+    queryList.push(req.query.class_room_id);
+  }
+
+  if (req.query.subject_id != null) {
+    conditions += `${
+      conditions.length > 0 ? " AND" : ""
+    } ${tObj}.subject_id = ?`;
+    queryList.push(req.query.subject_id);
+  }
+  console.log(`.......my.conditions.list.......${conditions}.....`);
+
+  if (req.query.exam_type_id != null) {
+    conditions += `${
+      conditions.length > 0 ? " AND" : ""
+    } ${tObj}.exam_type_id = ?`;
+    queryList.push(req.query.exam_type_id);
+  }
+  // console.log(conditions);
+
+  // if (req.query.teacher_id != null) {
+  //   conditions += `${
+  //     conditions.length > 0 ? " AND" : ""
+  //   } ${tObj}.teacher_id = ?`;
+  //   queryList.push(req.query.teacher_id);
+  // }
+  // conditions += `${
+  //   conditions.length > 0 ? " AND" : ""
+  // } ${tObj}.is_published = ?`;
+  // queryList.push(1);
+
+  // if (req.query.from_date != null && req.query.to_date != null) {
+  //   conditions += `${
+  //     conditions.length > 0 ? "AND" : ""
+  //   } ${tObj}.attendance_date BETWEEN ? AND ?`;
+  //   queryList.push(req.query.from_date);
+  //   queryList.push(req.query.to_date);
+  // }
+  console.log(`.......my.conditions.list.......${conditions}.....${queryList}`);
+  var sql;
+  sql = `SELECT 
+  ${this.selectedFields(tObj)},
+  ${getRelationalQueryWithStudentDetails(
+    req.headers.language
+  )} WHERE ${conditions} GROUP BY ${tObj}.id LIMIT 1`;
+  //  ORDER BY st.roll_no ASC
+  db.query(sql, queryList, (err, rows, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        error: err,
+      });
+    }
+      var resultObj = parseRelationalDataToJson(rows);
+      return res.status(statusCode.STATUS_OK).json({
+        message: staticMessage.SUCCESS(req.headers.language),
+        data: resultObj.length > 0 ? resultObj[0] : {},
+      });
   });
 };
 exports.getFilteredExamMark = (req, res) => {
@@ -262,9 +329,9 @@ exports.getLatestExamTypeAndClassRoomId = (req, res, next) => {
     //console.log(`.......home_work_date............${req.query.home_work_date}`);
     // Step 1: Get the latest date from the most recent record
     const placeholders = class_room_ids.map(() => "?").join(", ");
-     // console.log(`.......placeholders............${class_room_ids}`);
-      const params = [...class_room_ids, 1];
-      db.query(
+    // console.log(`.......placeholders............${class_room_ids}`);
+    const params = [...class_room_ids, 1];
+    db.query(
       `SELECT class_room_id,exam_type_id FROM ${tName} WHERE class_room_id IN (${placeholders}) AND is_published = ? ORDER BY exam_date DESC LIMIT 1`,
       params,
       (err, result) => {
@@ -412,36 +479,40 @@ LEFT JOIN ${constants.EXAM_TYPE_TABLE_NAME} as e ON ${tObj}.exam_type_id = e.id
 
 exports.publishMark = (req, res) => {
   console.log(`.............publishResult.......${req.body}`);
-     // Construct the final UPDATE query string
-     const query = `UPDATE ${tName} SET is_published = ? WHERE id = ?`;
-     // Execute the query
-     db.query(query, [req.body.is_published,req.params.id], async (err, result) => {
-       if (err) {
-         return res
-           .status(statusCode.STATUS_BAD_REQUEST)
-           .json({ error: err.message });
-       }
+  // Construct the final UPDATE query string
+  const query = `UPDATE ${tName} SET is_published = ? WHERE id = ?`;
+  // Execute the query
+  db.query(
+    query,
+    [req.body.is_published, req.params.id],
+    async (err, result) => {
+      if (err) {
+        return res
+          .status(statusCode.STATUS_BAD_REQUEST)
+          .json({ error: err.message });
+      }
 
-       // Check if any row was updated
-       if (result.affectedRows === 0) {
-         return res
-           .status(404)
-           .json({ message: staticMessage.NOT_FOUND(req.headers.language) });
-       }
+      // Check if any row was updated
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ message: staticMessage.NOT_FOUND(req.headers.language) });
+      }
       // var stIds =JSON.parse(req.body.student_ids);
-       // console.log(`........stIds.........>${stIds}....req.body.student_ids...${req.body.student_ids}`);
-           
-                await notificationController.sendNotificationToClassRoomIdsTopics(
-                     [req.body.class_room_id],
-                     staticMessage.EXAM_MARK(req.headers.language),
-                     staticMessage.NEW_EXAM_MARK_UPLOADED(req.headers.language)
-                   );
-       // Return a success response
-       res.status(statusCode.STATUS_OK).json({
-         message: staticMessage.UPDATED_SUCCESSFULLY(req.headers.language),
-         data: result.affectedRows,
-       });
-     });
+      // console.log(`........stIds.........>${stIds}....req.body.student_ids...${req.body.student_ids}`);
+
+      await notificationController.sendNotificationToClassRoomIdsTopics(
+        [req.body.class_room_id],
+        staticMessage.EXAM_MARK(req.headers.language),
+        staticMessage.NEW_EXAM_MARK_UPLOADED(req.headers.language)
+      );
+      // Return a success response
+      res.status(statusCode.STATUS_OK).json({
+        message: staticMessage.UPDATED_SUCCESSFULLY(req.headers.language),
+        data: result.affectedRows,
+      });
+    }
+  );
 };
 exports.updateExamMark = (req, res) => {
   console.log(`.............update.......${req.body}`);
@@ -514,14 +585,14 @@ exports.updateExamMark = (req, res) => {
               .status(404)
               .json({ message: staticMessage.NOT_FOUND(req.headers.language) });
           }
-         // var stIds =JSON.parse(req.body.student_ids);
+          // var stIds =JSON.parse(req.body.student_ids);
           // console.log(`........stIds.........>${stIds}....req.body.student_ids...${req.body.student_ids}`);
-              
-                  //  await notificationController.sendNotificationToClassRoomIdsTopics(
-                  //       [req.body.class_room_id],
-                  //       staticMessage.EXAM_MARK(req.headers.language),
-                  //       staticMessage.NEW_EXAM_MARK_UPLOADED(req.headers.language)
-                  //     );
+
+          //  await notificationController.sendNotificationToClassRoomIdsTopics(
+          //       [req.body.class_room_id],
+          //       staticMessage.EXAM_MARK(req.headers.language),
+          //       staticMessage.NEW_EXAM_MARK_UPLOADED(req.headers.language)
+          //     );
           // Return a success response
           res.status(statusCode.STATUS_OK).json({
             message: staticMessage.UPDATED_SUCCESSFULLY(req.headers.language),
@@ -633,8 +704,26 @@ LEFT JOIN ${
 } as ${ayObj} ON cr.academic_year_id = ${ayObj}.id
 LEFT JOIN ${constants.EXAM_TYPE_TABLE_NAME} as e ON ${tObj}.exam_type_id = e.id
 `;
-//JSON_CONTAINS(att.student_ids, JSON_ARRAY(st.id))
-//FIND_IN_SET(p.product_id, u.product_ids) > 0
+var getRelationalQueryWithStudentDetails = (language) => `
+JSON_OBJECT('id', t.id,'first_name',${
+  language == constants.LANGUAGE_BN ? "t.first_name_bn" : "t.first_name"
+} ,'middle_name',${
+  language == constants.LANGUAGE_BN ? "t.middle_name_bn" : "t.middle_name"
+},'last_name', ${
+  language == constants.LANGUAGE_BN ? "t.last_name_bn" : "t.last_name"
+}) AS teacher_info,
+CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id', st.id,'first_name',${
+  language == constants.LANGUAGE_BN ? "st.first_name_bn" : "st.first_name"
+},'last_name',${
+  language == constants.LANGUAGE_BN ? "st.last_name_bn" : "st.last_name"
+},'user_type',st.user_type,'user_id',st.user_id,
+'roll_no',st.roll_no) ORDER BY st.roll_no ASC SEPARATOR ','),']') AS student_info 
+FROM ${tName} as ${tObj}
+LEFT JOIN ${constants.TEACHER_TABLE} as t ON ${tObj}.teacher_id = t.id
+LEFT JOIN ${
+  constants.STUDENT_TABLE
+} as st ON JSON_CONTAINS(${tObj}.student_ids, JSON_ARRAY(st.id))
+`;
 exports.allFields = [
   "id",
   "class_room_id",
@@ -646,7 +735,7 @@ exports.allFields = [
   "pass_mark",
   "student_ids",
   "exam_marks",
-  'is_published',
+  "is_published",
   "created_at",
   "updated_at",
 ];

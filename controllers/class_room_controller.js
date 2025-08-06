@@ -47,6 +47,45 @@ exports.addClassRoom = (req, res) => {
     }
   );
 };
+exports.getLatestAcademicYear = (req, res, next) => {
+  console.log(`.........req.query.academic_year_id.............${req.query.academic_year_id}`);
+  if (req.query.academic_year_id != null && req.query.academic_year_id != '') {
+    next();
+  } else {
+    const sql = `SELECT 
+    a.id, ${
+      req.headers.language == constants.LANGUAGE_BN ? "a.name_bn" : "a.name"
+    } as name 
+   FROM ${tName} as ${tObj}
+   LEFT JOIN ${
+      constants.ACADEMIC_YEAR_TABLE_NAME
+    } as a ON ${tObj}.academic_year_id = a.id ORDER BY a.name DESC
+      LIMIT 1`;
+
+    db.query(sql, (err, rows, fields) => {
+      if (err instanceof Error) {
+        console.log(err);
+        return res.status(statusCode.STATUS_BAD_REQUEST).json({
+          message: staticMessage.FAILED(req.headers.language),
+          error: err,
+        });
+      }
+     
+
+      if (rows.length > 0) {
+         console.log(rows);
+        req.query.academic_year_id = rows[0]["id"];
+        next();
+      } else {
+        return res.status(statusCode.STATUS_OK).json({
+          message: staticMessage.SUCCESS(req.headers.language),
+          data: [],
+        });
+      }
+
+    });
+  }
+};
 exports.getAllClassRooms = (req, res) => {
   var conditions = "";
   var queryList = [];
