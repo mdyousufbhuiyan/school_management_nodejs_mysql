@@ -8,13 +8,13 @@ module.exports.EXAM_ROUTINE = (language) => {
   return constants.LANGUAGE_BN == language ? "পরীক্ষার রুটিন" : "Exam Routine";
 };
 module.exports.NEW_EXAM_ROUTINE_UPLOADED = (language) => {
-  return constants.LANGUAGE_BN == language ? "নতুন পরীক্ষার রুটিন প্রকাশ করা হয়েছে" : "New Exam Routine Uploaded";
+  return constants.LANGUAGE_BN == language ? "পরীক্ষার রুটিন যুক্ত করা হয়েছে" : "Exam Routine Added";
 };
 module.exports.CLASS_ROUTINE = (language) => {
   return constants.LANGUAGE_BN == language ? "ক্লাস রুটিন" : "Class Routine";
 };
 module.exports.NEW_CLASS_ROUTINE_UPLOADED = (language) => {
-  return constants.LANGUAGE_BN == language ? "নতুন ক্লাস রুটিন প্রকাশ করা হয়েছে" : "New Class Routine Uploaded";
+  return constants.LANGUAGE_BN == language ? "ক্লাস রুটিন যুক্ত করা হয়েছে" : "Class Routine Added";
 };
 
 module.exports.COMMENT = (language) => {
@@ -25,13 +25,13 @@ module.exports.NEW_COMMENT = (language) => {
   return constants.LANGUAGE_BN == language ? "নতুন মন্তব্য" : "New comment";
 };
 module.exports.NEW_COMMENT_ADDED = (language) => {
-  return constants.LANGUAGE_BN == language ? "নতুন মন্তব্য যোগ করা হয়েছে" : "New comment added";
+  return constants.LANGUAGE_BN == language ? "মন্তব্য যুক্ত করা হয়েছে" : "Comment added";
 };
 module.exports.FEE = (language) => {
   return constants.LANGUAGE_BN == language ? "ফি" : "Fee";
 };
 module.exports.NEW_FEE_UPLOADED = (language) => {
-  return constants.LANGUAGE_BN == language ? "নতুন ফি প্রকাশ করা হয়েছে" : "New Fee Uploaded";
+  return constants.LANGUAGE_BN == language ? "নতুন ফি যুক্ত করা হয়েছে" : "New Fee Added";
 };
 
 module.exports.FEE_PAYMENT = (language) => {
@@ -41,14 +41,14 @@ module.exports.HOME_WORK = (language) => {
   return constants.LANGUAGE_BN == language ? "বাড়ির কাজ" : "HomeWork";
 };
 module.exports.NEW_HOMEWORK_UPLOADED = (language) => {
-  return constants.LANGUAGE_BN == language ? "নতুন বাড়ির কাজ প্রকাশ করা হয়েছে" : "New HomeWork Uploaded";
+  return constants.LANGUAGE_BN == language ? "বাড়ির কাজ যুক্ত করা হয়েছে" : "New HomeWork Added";
 };
 module.exports.EXAM_MARK = (language) => {
-  return constants.LANGUAGE_BN == language ? "পরীক্ষার মার্ক" : "Exam Mark";
+  return constants.LANGUAGE_BN == language ? "পরীক্ষার ফলাফল" : "Exam Mark";
 };
 
 module.exports.NEW_EXAM_MARK_UPLOADED = (language) => {
-  return constants.LANGUAGE_BN == language ? "নতুন পরীক্ষার মার্ক প্রকাশ করা হয়েছে" : "New Exam Mark Uploaded";
+  return constants.LANGUAGE_BN == language ? "পরীক্ষার ফলাফল প্রকাশ করা হয়েছে" : "Exam Mark Published";
 };
 module.exports.ALREADY_EXISTS = (language) => {
   return constants.LANGUAGE_BN == language
