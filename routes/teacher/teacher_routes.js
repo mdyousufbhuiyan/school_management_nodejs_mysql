@@ -82,7 +82,7 @@ router.put(
 router.get(
   "/student-global-search",
   utils.extractTeacherToken,
-  clssStudentController.studentGolobalSearch
+  clssStudentController.studentGolobalSearchOptimized
 );
 
 //..............attendance info.............

@@ -22,10 +22,12 @@ exports.addComment = (req, res, next) => {
       } else {
         await notificationController.sendNotificationToStuentIdsTopics(
           [req.body.student_id],
-          staticMessage.COMMENT(req.headers.language),
-          staticMessage.NEW_COMMENT_ADDED(req.headers.language)
+          staticMessage.NEW_COMMENT(req.headers.language),
+          req.body.message
         );
+        // staticMessage.NEW_COMMENT_ADDED(req.headers.language)
         req.query.student_id = req.body.student_id;
+        req.query.message= staticMessage.comment_sent(req.headers.language);
         next();
         // res.status(statusCode.STATUS_CREATED).json({
         //   message: staticMessage.SUCCESS(req.headers.language),
@@ -80,7 +82,7 @@ rows.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     // console.log(rows);
     return res.status(statusCode.STATUS_OK).json({
-      message: staticMessage.SUCCESS(req.headers.language),
+      message:req.query.message?? staticMessage.SUCCESS(req.headers.language),
       data: parseRelationalDataToJson(rows),
     });
   });
@@ -125,15 +127,17 @@ exports.updateComments = (req, res, next) => {
         }
         await notificationController.sendNotificationToStuentIdsTopics(
           [req.body.student_id],
-          staticMessage.COMMENT(req.headers.language),
-          staticMessage.NEW_COMMENT_ADDED(req.headers.language)
+          staticMessage.NEW_COMMENT(req.headers.language),
+           req.body.message
         );
+        //  staticMessage.NEW_COMMENT_ADDED(req.headers.language)
         // Return a success response
         // res.status(200).json({
         //   message: staticMessage.UPDATED_SUCCESSFULLY(req.headers.language),
         //   data: result.affectedRows,
         // });
         req.query.student_id = req.body.student_id;
+        req.query.message = staticMessage.comment_update(req.headers.language);
         next();
       });
 };
