@@ -21,6 +21,9 @@ module.exports.COMMENT = (language) => {
   return constants.LANGUAGE_BN == language ? "মন্তব্য" : "Comment";
 };
 
+module.exports.NEW_COMMENT = (language) => {
+  return constants.LANGUAGE_BN == language ? "নতুন মন্তব্য" : "New comment";
+};
 module.exports.NEW_COMMENT_ADDED = (language) => {
   return constants.LANGUAGE_BN == language ? "নতুন মন্তব্য যোগ করা হয়েছে" : "New comment added";
 };
@@ -59,6 +62,13 @@ module.exports.SUCCESS = (language) => {
   return constants.LANGUAGE_BN == language ? "সফল হয়েছে" : "Success";
 };
 
+module.exports.comment_sent = (language) => {
+  return constants.LANGUAGE_BN == language ? "মন্তব্য পাঠানো হয়েছে" : "Comment sent";
+};
+
+module.exports.comment_update = (language) => {
+  return constants.LANGUAGE_BN == language ? "মন্তব্য আপডেট করা হয়েছে" : "Comment updated";
+};
 module.exports.WRONG_USER = (language) => {
   return constants.LANGUAGE_BN == language ? "ভুল ব্যবহারকারী" : "Wrong User";
 };

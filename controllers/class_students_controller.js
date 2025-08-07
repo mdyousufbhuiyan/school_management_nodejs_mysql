@@ -818,7 +818,7 @@ exports.studentGolobalSearch = (req, res) => {
       req.headers.language == constants.LANGUAGE_BN
         ? "st.last_name_bn"
         : "st.last_name"
-    } as last_name,st.user_id,
+    } as last_name,st.user_id,st.profile,
     JSON_OBJECT('class_id', c.id,'class_name',${
       req.headers.language == constants.LANGUAGE_BN ? "c.name_bn" : "c.name"
     },'group_id', g.id,'group_name', ${
@@ -890,7 +890,99 @@ exports.studentGolobalSearch = (req, res) => {
     return res.status(statusCode.STATUS_OK).json(results);
   });
 };
+exports.studentGolobalSearchOptimized = (req, res) => {
+  var conditions = "";
+  var queryList = [];
+  if (req.query.class_room_id != null) {
+    conditions += `${tObj}.class_room_id = ?`;
+    queryList.push(req.query.class_room_id);
+  }
+  if (req.query.class_id != null) {
+    conditions += `${tObj}.class_id = ?`;
+    queryList.push(req.query.class_id);
+  }
+  if (req.query.group_id != null) {
+    conditions += `${conditions.length > 0 ? "AND" : ""} ${tObj}.group_id = ?`;
+    queryList.push(req.query.group_id);
+  }
 
+  if (req.query.academic_year_id != null) {
+    conditions += `${
+      conditions.length > 0 ? "AND" : ""
+    } ${tObj}.academic_year_id = ?`;
+    queryList.push(req.query.academic_year_id);
+  }
+  console.log(`........conditions........${conditions}.....${queryList}`);
+  var sql;
+
+  if (queryList.length > 0) {
+    // First, increase the group_concat_max_len to handle larger datasets
+    db.query("SET SESSION group_concat_max_len = 100000000;", (err) => {
+      if (err) {
+        console.error("Error setting group_concat_max_len:", err);
+        return res
+          .status(500)
+          .json({ error: "Failed to set session variable" });
+      }
+    });
+    //................GROUP_CONCAT does not allow big data set need to increase size first............
+    sql = `SELECT ${tObj}.id,${tObj}.student_id,${tObj}.class_room_id,${tObj}.promoted_class_room_id,
+    ${tObj}.roll_no,${tObj}.promoted_roll_no,
+      ${
+        req.headers.language == constants.LANGUAGE_BN
+          ? "st.first_name_bn"
+          : "st.first_name"
+      } as first_name, ${
+      req.headers.language == constants.LANGUAGE_BN
+        ? "st.last_name_bn"
+        : "st.last_name"
+    } as last_name,st.user_id,st.profile,
+    JSON_OBJECT('id', st.id,'first_name',
+       ${
+         req.headers.language == constants.LANGUAGE_BN
+           ? "st.first_name_bn"
+           : "st.first_name"
+       },'last_name',${
+      req.headers.language == constants.LANGUAGE_BN
+        ? "st.last_name_bn"
+        : "st.last_name"
+    },'user_id',st.user_id,'profile',st.profile,
+       'roll_no',${tObj}.roll_no) AS student_info
+     FROM ${tName} as ${tObj}
+   LEFT JOIN ${constants.STUDENT_TABLE} as st ON ${tObj}.student_id = st.id
+  WHERE ${conditions} ORDER BY CAST(${tObj}.roll_no AS UNSIGNED) ASC`;
+  } else {
+    return res.status(statusCode.STATUS_BAD_REQUEST).json({
+      message: "Query parameters is required",
+    });
+  }
+  // First, increase the group_concat_max_len to handle larger datasets
+  db.query("SET SESSION group_concat_max_len = 100000000;", (err) => {
+    if (err) {
+      console.error("Error setting group_concat_max_len:", err);
+      return res
+        .status(statusCode.STATUS_BAD_REQUEST)
+        .json({ error: "Failed to set session variable" });
+    }
+  });
+  db.query(sql, queryList, (err, results, fields) => {
+    if (err instanceof Error) {
+      console.log(err);
+      return res.status(statusCode.STATUS_BAD_REQUEST).json({
+        message: staticMessage.FAILED(req.headers.language),
+        error: err,
+      });
+    }
+    // console.log('Query Results:', results);
+    // results.forEach((element) => {
+    //   element["student_info"] = element.student_info != null ? JSON.parse(element.student_info) : {};
+    // });
+
+    parseRelationalDataToJson(results);
+
+    return res.status(statusCode.STATUS_OK).json(results);
+  });
+};
 var parseRelationalDataToJson = (rows) => {
   // Format the results as JSON objects
   rows.forEach((element) => {
